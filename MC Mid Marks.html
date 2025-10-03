@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>B.Tech Marks Portal</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:400,800" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 20px;
+      font-family: 'Montserrat', sans-serif;
+      color: #ffff;
+      min-height: 100vh;
+      background: linear-gradient(-90deg, #ffff00, #000000, #ffff00,#000000);
+      background-size: 400% 400%;
+      animation: gradient 15s ease infinite;
+      position: relative;
+    }
+    @keyframes gradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    h1, h2 { text-align: center; color: #fff; }
+    .title { font-size: 26px; margin-bottom: 0; }
+    .container {
+      background-color: rgba(0, 0, 0, 0.4);
+      border-radius: 12px;
+      box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22);
+      position: relative; overflow: hidden;
+      width: 768px; max-width: 100%; min-height: 480px;
+      margin: 30px auto; color: #fff;
+    }
+    .form-container { position: absolute; top: 0; height: 100%; transition: all 0.6s ease-in-out; }
+    .sign-in-container { left: 0; width: 50%; z-index: 2; }
+    .sign-up-container { left: 0; width: 50%; opacity: 0; z-index: 1; }
+    .container.right-panel-active .sign-in-container { transform: translateX(100%); }
+    .container.right-panel-active .sign-up-container { transform: translateX(100%); opacity: 1; z-index: 5; animation: show 0.6s; }
+    @keyframes show { 0%, 49.99% { opacity: 0; z-index: 1; } 50%, 100% { opacity: 1; z-index: 5; } }
+    .overlay-container { position: absolute; top: 0; left: 50%; width: 50%; height: 100%; overflow: hidden; transition: transform 0.6s ease-in-out; z-index: 100; }
+    .container.right-panel-active .overlay-container { transform: translateX(-100%); }
+    .overlay {
+      background: linear-gradient(to right, #FFF44F, #FFF44F);
+      color: #000000; position: relative; left: -100%; height: 100%; width: 200%;
+      transform: translateX(0); transition: transform 0.6s ease-in-out;
+    }
+    .container.right-panel-active .overlay { transform: translateX(50%); }
+    .overlay-panel {
+      position: absolute; display: flex; align-items: center; justify-content: center;
+      flex-direction: column; padding: 0 40px; text-align: center;
+      top: 0; height: 100%; width: 50%; transition: transform 0.6s ease-in-out;
+    }
+    .overlay-left { transform: translateX(-20%); }
+    .container.right-panel-active .overlay-left { transform: translateX(0); }
+    .overlay-right { right: 0; transform: translateX(0); }
+    .container.right-panel-active .overlay-right { transform: translateX(20%); }
+    form {
+      background: #000000; display: flex; align-items: center; justify-content: center;
+      flex-direction: column; padding: 0 50px; height: 100%; text-align: center; color: #fff;
+    }
+    input, select {
+      background-color: rgba(243, 197, 47, 0.15); border: none;
+      padding: 12px 15px; margin: 8px 0; width: 100%; color: #f3f0f0; border-radius: 8px;
+    }
+    input::placeholder { color: rgba(255, 255, 255, 0.7); }
+    button {
+      border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.6);
+      background-color: rgba(255, 255, 255, 0.2); color: #ffffff;
+      font-size: 16px; font-weight: bold; padding: 15px 30px;
+      letter-spacing: 1px; transition: all 0.3s ease; cursor: pointer;
+      display: flex; align-items: center; gap: 12px;
+    }
+    button i { font-size: 24px; }
+    button:hover { background-color: rgba(255, 255, 255, 0.3); transform: translateY(-2px); }
+    .section {
+      max-width: 650px; margin: 20px auto;
+      background: rgba(0,0,0,0.4); padding: 20px;
+      border-radius: 12px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2); color: #fff;
+    }
+    .hidden { display: none; }
+    .action-buttons { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin-top: 20px; }
+    table { width: 100%; margin-top: 20px; border-collapse: collapse; background-color: rgba(0, 0, 0, 0.4); color: #fff; }
+    th, td { padding: 10px; border: 1px solid rgba(255,255,255,0.2); text-align: center; }
+    .admin-panel { background: rgba(255, 244, 79, 0.1); }
+    .student-list { max-height: 400px; overflow-y: auto; }
+    .admin-toggle { 
+      position: fixed; 
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+    }
+    .back-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+    }
+    .watermark {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      color: rgba(255,255,255,0.3);
+      font-size: 12px;
+    }
+    .watermark a {
+      color: rgba(255,255,255,0.3);
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+    .watermark a:hover {
+      color: rgba(255,255,255,0.5);
+    }
+
+    .portfolio-icons {
+      display: flex;
+      justify-content: center;
+      gap: 25px;
+      margin-bottom: 30px;
+    }
+    .portfolio-icon {
+      font-size: 28px;
+      transition: transform 0.3s ease;
+    }
+    .portfolio-icon:hover {
+      transform: translateY(-5px);
+    }
+    .fa-linkedin { color: #0077b5; }
+    .fa-github { color: #ffffff; }
+    .fa-code { color: #ffa116; }
+    .fa-hackerrank { color: #2ec866; }
+    .creator-credit {
+      position: absolute;
+      bottom: 15px;
+      width: 100%;
+      text-align: center;
+      color: #000;
+      font-weight: bold;
+    }
+    .creator-credit a {
+      color: #000;
+      text-decoration: none;
+    }
+    @media (max-width: 768px) {
+      .container { width: 95%; }
+      button { width: 100%; justify-content: center; }
+      table { font-size: 14px; }
+      .portfolio-icons { gap: 15px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="back-btn hidden">
+  <button onclick="goBack()"><i class="fas fa-chevron-circle-left"></i> Back</button>
+</div>
+
+<div class="admin-toggle">
+  <button onclick="showAdminLogin()"><i class="fas fa-user-shield"></i> Admin Portal</button>
+</div>
+
+<div class="watermark">
+  <a href="https://www.linkedin.com/in/mohitc39" target="_blank" rel="noopener noreferrer">
+    <i class="fab fa-linkedin"></i> Created by MohitC
+
+  </a>
+</div>
+
+<h1 class="title"><i class="fas fa-university"></i> B.Tech Secure Marks Portal</h1>
+<div class="container" id="container">
+  <div class="form-container sign-up-container">
+    <form onsubmit="event.preventDefault(); handleSignIn();">
+      <h1>Create Account</h1>
+      
+      <div class="portfolio-icons">
+        <a href="https://linkedin.com/in/mohitc39" target="_blank" class="portfolio-icon">
+          <i class="fab fa-linkedin"></i>
+        </a>
+        <a href="https://github.com/chmvsm" target="_blank" class="portfolio-icon">
+          <i class="fab fa-github"></i>
+        </a>
+        <a href="https://leetcode.com/MohitC_/" target="_blank" class="portfolio-icon">
+          <i class="fas fa-code"></i>
+        </a>
+        <a href="https://www.hackerrank.com/profile/23471A0576" target="_blank" class="portfolio-icon">
+          <i class="fab fa-hackerrank"></i>
+        </a>
+      </div>
+
+      <input type="text" id="signName" placeholder="Name" required>
+      <input type="text" id="signRoll" placeholder="Roll Number" required>
+      <select id="signYear" required>
+        <option value="">Select Year</option>
+        <option>First Year</option>
+        <option>Second Year</option>
+        <option>Third Year</option>
+        <option>Fourth Year</option>
+      </select>
+      <button type="submit"><i class="fas fa-user-plus"></i> Sign Up</button>
+    </form>
+  </div>
+
+  <div class="form-container sign-in-container">
+    <form onsubmit="event.preventDefault(); handleLogin();">
+      <h1>Sign In</h1>
+      
+      <div class="portfolio-icons">
+        <a href="https://linkedin.com/in/mohitc39" target="_blank" class="portfolio-icon">
+          <i class="fab fa-linkedin"></i>
+        </a>
+        <a href="https://github.com/chmvsm" target="_blank" class="portfolio-icon">
+          <i class="fab fa-github"></i>
+        </a>
+        <a href="https://leetcode.com/MohitC_/" target="_blank" class="portfolio-icon">
+          <i class="fas fa-code"></i>
+        </a>
+        <a href="https://www.hackerrank.com/profile/23471A0576" target="_blank" class="portfolio-icon">
+          <i class="fab fa-hackerrank"></i>
+        </a>
+      </div>
+
+      <input type="text" id="loginName" placeholder="Name" required>
+      <input type="text" id="loginRoll" placeholder="Roll Number" required>
+      <select id="loginYear" required>
+        <option value="">Select Year</option>
+        <option>First Year</option>
+        <option>Second Year</option>
+        <option>Third Year</option>
+        <option>Fourth Year</option>
+      </select>
+      <button type="submit"><i class="fas fa-sign-in-alt"></i> Login</button>
+    </form>
+  </div>
+
+  <div class="overlay-container">
+    <div class="overlay">
+      <div class="overlay-panel overlay-left">
+        <h1>Welcome Back!</h1>
+        <p>To continue, please log in with your details</p>
+        <button class="ghost" id="signIn"><i class="fas fa-sign-in-alt"></i> Sign In</button>
+        <div class="creator-credit">
+          Developed by <a href="https://linkedin.com/in/mohitc39" target="_blank">MohitC</a>
+        </div>
+      </div>
+      <div class="overlay-panel overlay-right">
+        <h1>Hello, Friend!</h1>
+        <p>Start your academic journey with us by creating an account</p>
+        <button class="ghost" id="signUp"><i class="fas fa-user-plus"></i> Sign Up</button>
+        <div class="creator-credit">
+          Developed by <a href="https://linkedin.com/in/mohitc39" target="_blank">MohitC</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Rest of the sections (admin login, admin panel, mark options, etc.) remain same as previous code -->
+
+<div id="adminLogin" class="section hidden">
+  <h2><i class="fas fa-user-shield"></i> Admin Portal</h2>
+  <input type="text" id="adminName" placeholder="Admin Name">
+  <input type="password" id="adminPass" placeholder="Password">
+  <div class="action-buttons">
+    <button onclick="handleAdminLogin()"><i class="fas fa-sign-in-alt"></i> Login</button>
+    <button onclick="goBack()"><i class="fas fa-times"></i> Cancel</button>
+  </div>
+</div>
+
+<div id="adminPanel" class="section hidden admin-panel">
+  <h2><i class="fas fa-users-cog"></i> Student Records</h2>
+  <div class="action-buttons">
+    <button onclick="downloadAllStudentsPDF()"><i class="fas fa-file-pdf"></i> Export All Data</button>
+  </div>
+  <div class="student-list">
+    <table id="allStudents">
+      <thead>
+        <tr>
+          <th>Roll No</th>
+          <th>Name</th>
+          <th>Year</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="markOptions" class="section hidden">
+  <h2><i class="fas fa-clipboard-list"></i> Academic Portal</h2>
+  <div class="action-buttons">
+    <button onclick="showMid('mid1')"><i class="fas fa-edit"></i> Mid 1 Marks</button>
+    <button onclick="showMid('mid2')"><i class="fas fa-edit"></i> Mid 2 Marks</button>
+    <button onclick="loadTable()"><i class="fas fa-table"></i> Marks Summary</button>
+    <button onclick="downloadTxt()"><i class="fas fa-file-pdf"></i> Export PDF</button>
+    <button onclick="goHome()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+  </div>
+</div>
+
+<div id="midForm" class="section hidden">
+  <h2 id="midTitle"><i class="fas fa-book-open"></i> Mid Marks</h2>
+  <label>Subject:</label>
+  <input id="subject" type="text" required>
+  <label>Objective (/10):</label>
+  <input id="obj" type="number" min="0" max="10" oninput="this.value = Math.min(this.value, 10)" required>
+  <label>Descriptive (/30):</label>
+  <input id="desc" type="number" min="0" max="30" oninput="this.value = Math.min(this.value, 30)" required>
+  <label id="assignLabel">Assignment (/10):</label>
+  <input id="assign" type="number" min="0" max="10" oninput="this.value = Math.min(this.value, 10)" required>
+  <button onclick="saveMid()"><i class="fas fa-save"></i> Save</button>
+</div>
+
+<div id="marksTableContainer" class="section hidden">
+  <h2><i class="fas fa-chart-bar"></i> Marks Summary</h2>
+  <table id="marksTable">
+    <thead>
+      <tr>
+        <th>Subject</th>
+        <th>Mid 1</th>
+        <th>Mid 2</th>
+        <th>Total (/30)</th>
+        <th>Edit</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+const { jsPDF } = window.jspdf;
+const container = document.getElementById('container');
+const signUpButton = document.getElementById('signUp');
+const signInButton = document.getElementById('signIn');
+
+signUpButton.addEventListener('click', () => container.classList.add("right-panel-active"));
+signInButton.addEventListener('click', () => container.classList.remove("right-panel-active"));
+
+let currentUser = '';
+let currentMid = '';
+let isAdmin = false;
+let viewHistory = [];
+
+function toggleView(id, addToHistory = true) {
+  const currentView = document.querySelector('.section:not(.hidden), .container:not(.hidden)');
+  if (addToHistory && currentView) viewHistory.push(currentView.id);
+  
+  document.querySelectorAll('.section, .container').forEach(el => el.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+  document.querySelector('.back-btn').classList.toggle('hidden', id === 'container');
+}
+
+function goBack() {
+  if (viewHistory.length > 0) {
+    const previousView = viewHistory.pop();
+    toggleView(previousView, false);
+  } else {
+    toggleView('container');
+  }
+}
+
+function goHome() {
+  viewHistory = [];
+  toggleView('container');
+  currentUser = '';
+  isAdmin = false;
+}
+
+function handleSignIn() {
+  const name = document.getElementById('signName').value.trim();
+  const roll = document.getElementById('signRoll').value.trim().toLowerCase();
+  const year = document.getElementById('signYear').value;
+  
+  if (!name || !roll || !year) return alert("Please fill all fields.");
+  
+  const userKey = `${roll}_${year}`;
+  const users = JSON.parse(localStorage.getItem('users') || '{}');
+  
+  if (users[userKey]) return alert("Roll number already exists for this year!");
+  
+  users[userKey] = { 
+    name: name.toLowerCase(), 
+    year: year,
+    mid1: [], 
+    mid2: [] 
+  };
+  
+  localStorage.setItem('users', JSON.stringify(users));
+  alert("Sign up successful. Please login.");
+  document.getElementById('signName').value = '';
+  document.getElementById('signRoll').value = '';
+  container.classList.remove("right-panel-active");
+}
+
+function handleLogin() {
+  const name = document.getElementById('loginName').value.trim().toLowerCase();
+  const roll = document.getElementById('loginRoll').value.trim().toLowerCase();
+  const year = document.getElementById('loginYear').value;
+  const userKey = `${roll}_${year}`;
+  
+  const users = JSON.parse(localStorage.getItem('users') || '{}');
+  if (!users[userKey] || users[userKey].name !== name) {
+    return alert("Invalid credentials!");
+  }
+  
+  currentUser = userKey;
+  toggleView('markOptions');
+  loadTable();
+}
+
+function showAdminLogin() {
+  toggleView('adminLogin');
+}
+
+function handleAdminLogin() {
+  const adminName = document.getElementById('adminName').value;
+  const adminPass = document.getElementById('adminPass').value;
+  
+  if(adminName === 'admin' && adminPass === '36139') {
+    isAdmin = true;
+    loadAllStudents();
+    toggleView('adminPanel');
+  } else {
+    alert("Invalid admin credentials!");
+  }
+}
+
+function loadAllStudents() {
+  const users = JSON.parse(localStorage.getItem('users') || '{}');
+  const tbody = document.querySelector("#allStudents tbody");
+  tbody.innerHTML = '';
+  
+  Object.keys(users).forEach(userKey => {
+    const [roll, year] = userKey.split('_');
+    tbody.innerHTML += `
+      <tr>
+        <td>${roll}</td>
+        <td>${users[userKey].name}</td>
+        <td>${year}</td>
+        <td>
+          <button onclick="viewStudent('${userKey}')"><i class="fas fa-eye"></i></button>
+        </td>
+      </tr>`;
+  });
+}
+
+function viewStudent(userKey) {
+  currentUser = userKey;
+  loadTable();
+  toggleView('marksTableContainer');
+}
+
+function showMid(mid) {
+  currentMid = mid;
+  document.getElementById('midTitle').innerText = mid === 'mid1' ? 'Mid 1 Entry' : 'Mid 2 Entry';
+  document.getElementById('assignLabel').innerText = mid === 'mid1' ? 'Assignment 1 (/10):' : 'Assignment 2 (/10):';
+  document.getElementById('subject').value = '';
+  document.getElementById('obj').value = '';
+  document.getElementById('desc').value = '';
+  document.getElementById('assign').value = '';
+  toggleView('midForm');
+}
+
+function saveMid() {
+  const subject = document.getElementById('subject').value.trim();
+  const obj = +document.getElementById('obj').value;
+  const desc = +document.getElementById('desc').value;
+  const assign = +document.getElementById('assign').value;
+  if (!subject || isNaN(obj) || isNaN(desc) || isNaN(assign)) {
+    alert("Please fill all fields correctly.");
+    return;
+  }
+  const users = JSON.parse(localStorage.getItem('users') || '{}');
+  const user = users[currentUser];
+  let existing = user[currentMid].find(m => m.subject === subject);
+  if (existing) {
+    existing.obj = obj;
+    existing.desc = desc;
+    existing.assign = assign;
+  } else {
+    user[currentMid].push({ subject, obj, desc, assign });
+  }
+  localStorage.setItem('users', JSON.stringify(users));
+  loadTable();
+  toggleView(isAdmin ? 'adminPanel' : 'markOptions');
+}
+
+function loadTable() {
+  const users = JSON.parse(localStorage.getItem('users') || '{}');
+  const data = users[currentUser];
+  const map = new Map();
+  data.mid1.forEach(m => {
+    const total1 = m.obj + (m.desc / 2) + (m.assign / 2);
+    map.set(m.subject, { mid1: total1.toFixed(1) });
+  });
+  data.mid2.forEach(m => {
+    if (!map.has(m.subject)) map.set(m.subject, {});
+    const total2 = m.obj + (m.desc / 2) + (m.assign / 2);
+    map.get(m.subject).mid2 = total2.toFixed(1);
+  });
+  const tbody = document.querySelector("#marksTable tbody");
+  tbody.innerHTML = '';
+  map.forEach((val, key) => {
+    const m1 = parseFloat(val.mid1 || 0);
+    const m2 = parseFloat(val.mid2 || 0);
+    let high = Math.max(m1, m2);
+    let low = Math.min(m1, m2);
+    let total = ((high * 0.8) + (low * 0.2));
+    tbody.innerHTML += `
+      <tr>
+        <td>${key}</td>
+        <td>${val.mid1 || '-'}</td>
+        <td>${val.mid2 || '-'}</td>
+        <td>${total.toFixed(1)}</td>
+        <td><button onclick="editSubject('${key}')"><i class="fas fa-edit"></i></button></td>
+      </tr>`;
+  });
+  document.getElementById('marksTableContainer').classList.remove('hidden');
+}
+
+function editSubject(subject) {
+  const users = JSON.parse(localStorage.getItem('users') || '{}');
+  const user = users[currentUser];
+  const mid1Data = user.mid1.find(m => m.subject === subject);
+  const mid2Data = user.mid2.find(m => m.subject === subject);
+  if (mid1Data) {
+    currentMid = 'mid1';
+    document.getElementById('midTitle').innerText = 'Mid 1 Entry';
+    document.getElementById('assignLabel').innerText = 'Assignment 1 (/10):';
+    document.getElementById('subject').value = mid1Data.subject;
+    document.getElementById('obj').value = mid1Data.obj;
+    document.getElementById('desc').value = mid1Data.desc;
+    document.getElementById('assign').value = mid1Data.assign;
+  } else if (mid2Data) {
+    currentMid = 'mid2';
+    document.getElementById('midTitle').innerText = 'Mid 2 Entry';
+    document.getElementById('assignLabel').innerText = 'Assignment 2 (/10):';
+    document.getElementById('subject').value = mid2Data.subject;
+    document.getElementById('obj').value = mid2Data.obj;
+    document.getElementById('desc').value = mid2Data.desc;
+    document.getElementById('assign').value = mid2Data.assign;
+  }
+  toggleView('midForm');
+}
+
+function downloadTxt() {
+  const users = JSON.parse(localStorage.getItem('users') || '{}');
+  const user = users[currentUser];
+  if (!user) return alert("No data to download!");
+
+  const doc = new jsPDF();
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.text("B.Tech Mid Marks", 105, 20, null, null, "center");
+
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Name: ${user.name.toUpperCase()}`, 20, 30);
+  doc.text(`Roll Number: ${currentUser.split('_')[0].toUpperCase()}`, 20, 38);
+  doc.text(`Academic Year: ${user.year}`, 20, 46);
+
+  let mid1 = [["Subject", "Objective", "Descriptive", "Assignment", "Total"]];
+  user.mid1.forEach((m) => {
+    const total = (m.obj + (m.desc / 2) + (m.assign / 2)).toFixed(1);
+    mid1.push([m.subject, m.obj, m.desc, m.assign, total]);
+  });
+
+  doc.autoTable({
+    head: [mid1[0]],
+    body: mid1.slice(1),
+    startY: 60,
+    theme: "grid",
+    headStyles: { fillColor: [255, 244, 79], textColor: 0 },
+    styles: { fontSize: 12 }
+  });
+
+  let mid2 = [["Subject", "Objective", "Descriptive", "Assignment", "Total"]];
+  user.mid2.forEach((m) => {
+    const total = (m.obj + (m.desc / 2) + (m.assign / 2)).toFixed(1);
+    mid2.push([m.subject, m.obj, m.desc, m.assign, total]);
+  });
+
+  let lastY = doc.previousAutoTable.finalY + 10;
+  doc.autoTable({
+    head: [mid2[0]],
+    body: mid2.slice(1),
+    startY: lastY,
+    theme: "grid",
+    headStyles: { fillColor: [255, 244, 79], textColor: 0 },
+    styles: { fontSize: 12 }
+  });
+
+  let sumY = doc.previousAutoTable.finalY + 15;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("Final Marks Summary", 105, sumY, null, null, "center");
+
+  const summary = [];
+  user.mid1.forEach(m1 => {
+    const mid2match = user.mid2.find(m2 => m2.subject === m1.subject);
+    const total1 = m1.obj + (m1.desc / 2) + (m1.assign / 2);
+    const total2 = mid2match ? (mid2match.obj + (mid2match.desc / 2) + (mid2match.assign / 2)) : 0;
+    const high = Math.max(total1, total2);
+    const low = Math.min(total1, total2);
+    const finalTotal = (high * 0.8 + low * 0.2).toFixed(1);
+    summary.push([m1.subject, total1.toFixed(1), total2.toFixed(1), finalTotal]);
+  });
+
+  doc.autoTable({
+    head: [["Subject", "Mid 1 Total", "Mid 2 Total", "Final Total"]],
+    body: summary,
+    startY: sumY + 5,
+    theme: "grid",
+    headStyles: { fillColor: [255, 244, 79], textColor: 0 },
+    styles: { fontSize: 12 }
+  });
+
+  doc.setFontSize(10);
+  doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 290);
+  doc.save(`${user.name}_BTech_Marks_Certificate.pdf`);
+}
+
+function downloadAllStudentsPDF() {
+  const users = JSON.parse(localStorage.getItem('users') || '{}');
+  const doc = new jsPDF();
+  
+  const headers = ["Roll No", "Name", "Year", "Subject", "Mid 1", "Mid 2", "Final"];
+  const data = [];
+  
+  Object.entries(users).forEach(([userKey, user]) => {
+    const [roll, year] = userKey.split('_');
+    const subjects = {};
+    
+    user.mid1.forEach(m => {
+      const total = (m.obj + m.desc/2 + m.assign/2).toFixed(1);
+      subjects[m.subject] = { mid1: total, mid2: '-', final: '-' };
+    });
+    
+    user.mid2.forEach(m => {
+      const total = (m.obj + m.desc/2 + m.assign/2).toFixed(1);
+      if (!subjects[m.subject]) {
+        subjects[m.subject] = { mid1: '-', mid2: total, final: '-' };
+      } else {
+        subjects[m.subject].mid2 = total;
+      }
+    });
+    
+    Object.entries(subjects).forEach(([subject, marks]) => {
+      const mid1 = parseFloat(marks.mid1) || 0;
+      const mid2 = parseFloat(marks.mid2) || 0;
+      const high = Math.max(mid1, mid2);
+      const low = Math.min(mid1, mid2);
+      const final = (high * 0.8 + low * 0.2).toFixed(1);
+      data.push([roll, user.name, year, subject, marks.mid1, marks.mid2, final]);
+    });
+  });
+  
+  doc.autoTable({
+    head: [headers],
+    body: data,
+    startY: 20,
+    theme: "grid",
+    headStyles: { fillColor: [255, 244, 79], textColor: 0 },
+    styles: { fontSize: 10 }
+  });
+  
+  doc.save("All_Students_Report.pdf");
+}
+</script>
+
+
+</body>
+</html>
